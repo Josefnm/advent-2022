@@ -29,7 +29,7 @@ const solver = (mover: Mover) => {
     .map(s => s.match(/\d+/g)?.map(s => +s) as Instruction)
 
   instructions.forEach(mover(stacks))
-  return stacks.map(s => s.pop() ?? '').reduce((acc, cur) => acc + cur, '')
+  return stacks.map(s => s.pop() ?? '').join()
 }
 
 export const part1 = () => {
