@@ -25,28 +25,25 @@ const createFiles = () => {
   return currentDir[0]
 }
 
-const traverseData = (file: Files): number[] => {
-  let sum = 0
-  let folders: number[] = []
-  for (const [_, val] of Object.entries(file)) {
-    if (typeof val === 'number') {
-      sum += val
-    } else {
-      const res = traverseData(val)
-      sum += res.at(-1) ?? 0
-      folders = [...folders, ...res]
-    }
-  }
-  return [...folders, sum]
-}
+const traverseData = (file: Files): number[] =>
+  Object.values(file).reduce(
+    (acc, cur) => {
+      if (typeof cur === 'number') {
+        acc[0] += cur
+        return acc
+      } else {
+        const res = traverseData(cur)
+        acc[0] += res[0]
+        return [...acc, ...res]
+      }
+    },
+    [0]
+  )
 
-export const part1 = () => {
-  const data = createFiles()
-
-  return traverseData(data)
+export const part1 = () =>
+  traverseData(createFiles())
     .filter(n => n <= MAX_SIZE)
     .reduce((acc, cur) => acc + cur, 0)
-}
 
 const TARGET_SIZE = 40000000
 
