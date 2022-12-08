@@ -2,55 +2,66 @@ import { getInput } from '../utils/getInput'
 
 const input = getInput(__dirname)
 
-type Files = { [Key: string]: number | Files }
+class Dir {
+  filesSize = 0
+  dirs: Dir[] = []
+  parent: Dir | null
+  totalSize: number | undefined
 
-const MAX_SIZE = 100000
-
-const createFiles = () => {
-  const currentDir: Files[] = [{}]
-  for (const line of input.split('\n')) {
-    if (line.includes('$ cd ..')) {
-      currentDir.pop()
-    } else if (line.includes('$ cd ')) {
-      const dirName = line.slice(5)
-      const dir = {}
-      currentDir.at(-1)![dirName] = dir
-      currentDir.push(dir)
-    } else if (line.match(/\d+/)?.[0] != null) {
-      const num = line.match(/\d+/)?.[0]!
-      const name = line.slice(num.length + 1)
-      currentDir.at(-1)![name] = +num
-    }
+  constructor(parent: Dir | null) {
+    this.parent = parent
   }
-  return currentDir[0]
+  static createDirs(): Dir {
+    const root = new Dir(null)
+    input
+      .split('\n')
+      .slice(1)
+      .reduce((acc, cur) => acc.handleInput(cur), root)
+    return root
+  }
+  private getSize(): number {
+    if (typeof this.totalSize !== 'number') {
+      this.totalSize =
+        this.filesSize + this.dirs.reduce((acc, cur) => acc + cur.getSize(), 0)
+    }
+    return this.totalSize
+  }
+  getAllSizes(): number[] {
+    return [this.getSize(), ...this.dirs.map(dir => dir.getAllSizes()).flat()]
+  }
+  handleInput(line: string): Dir {
+    if (line.includes('$ cd ..')) {
+      if (this.parent == null) throw Error("You've dug too shallow")
+      return this.parent
+    } else if (line.includes('$ cd ')) {
+      const subDir = new Dir(this)
+      this.dirs.push(subDir)
+      return subDir
+    } else if (line.match(/\d+/)?.[0] != null) {
+      this.filesSize += +line.match(/\d+/)?.[0]!
+    }
+    return this
+  }
+  sumAllFoldersSmallerThan(size: number): number {
+    return this.getAllSizes()
+      .filter(n => n <= size)
+      .reduce((acc, cur) => acc + cur, 0)
+  }
+  findFolderToDeleteByTotalSizeTarget(size: number): number {
+    const spaceNeeded = this.getSize() - size
+    const folder = this.getAllSizes()
+      .sort((a, b) => a - b)
+      .find(item => item > spaceNeeded)
+    if (folder == null)
+      throw new Error(`couldn't find a folder smaller than: ${spaceNeeded}`)
+    return folder
+  }
 }
 
-const traverseData = (file: Files): number[] =>
-  Object.values(file).reduce(
-    (acc, cur) => {
-      if (typeof cur === 'number') {
-        acc[0] += cur
-        return acc
-      } else {
-        const res = traverseData(cur)
-        acc[0] += res[0]
-        return [...acc, ...res]
-      }
-    },
-    [0]
-  )
+const MAX_SIZE = 100_000
+const TARGET_SIZE = 40_000_000
 
-export const part1 = () =>
-  traverseData(createFiles())
-    .filter(n => n <= MAX_SIZE)
-    .reduce((acc, cur) => acc + cur, 0)
+export const part1 = () => Dir.createDirs().sumAllFoldersSmallerThan(MAX_SIZE)
 
-const TARGET_SIZE = 40000000
-
-export const part2 = () => {
-  const data = traverseData(createFiles())
-  data.sort((a, b) => a - b)
-  const currentSize = data.at(-1) ?? 0
-  const spaceNeeded = currentSize - TARGET_SIZE
-  return data.find(item => item > spaceNeeded)
-}
+export const part2 = () =>
+  Dir.createDirs().findFolderToDeleteByTotalSizeTarget(TARGET_SIZE)
