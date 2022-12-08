@@ -3,22 +3,24 @@ import { getInput } from '../utils/getInput'
 const input = getInput(__dirname)
 
 class Dir {
-  filesSize = 0
-  dirs: Dir[] = []
-  parent: Dir | null
-  totalSize: number | undefined
+  private readonly filesSize = 0
+  private readonly dirs: Dir[] = []
+  private totalSize: number | undefined
 
-  constructor(parent: Dir | null) {
-    this.parent = parent
+  constructor(commands: string[]) {
+    while (true) {
+      const command = commands.shift()
+      if (!command || command === '$ cd ..') {
+        break
+      } else if (command.includes('$ cd ')) {
+        const subDir = new Dir(commands)
+        this.dirs.push(subDir)
+      } else if (command.match(/\d+/)?.[0] != null) {
+        this.filesSize += +command.match(/\d+/)?.[0]!
+      }
+    }
   }
-  static createDirs(): Dir {
-    const root = new Dir(null)
-    input
-      .split('\n')
-      .slice(1)
-      .reduce((acc, cur) => acc.handleInput(cur), root)
-    return root
-  }
+
   private getSize(): number {
     if (typeof this.totalSize !== 'number') {
       this.totalSize =
@@ -26,21 +28,8 @@ class Dir {
     }
     return this.totalSize
   }
-  getAllSizes(): number[] {
+  private getAllSizes(): number[] {
     return [this.getSize(), ...this.dirs.map(dir => dir.getAllSizes()).flat()]
-  }
-  handleInput(line: string): Dir {
-    if (line.includes('$ cd ..')) {
-      if (this.parent == null) throw Error("You've dug too shallow")
-      return this.parent
-    } else if (line.includes('$ cd ')) {
-      const subDir = new Dir(this)
-      this.dirs.push(subDir)
-      return subDir
-    } else if (line.match(/\d+/)?.[0] != null) {
-      this.filesSize += +line.match(/\d+/)?.[0]!
-    }
-    return this
   }
   sumAllFoldersSmallerThan(size: number): number {
     return this.getAllSizes()
@@ -61,7 +50,9 @@ class Dir {
 const MAX_SIZE = 100_000
 const TARGET_SIZE = 40_000_000
 
-export const part1 = () => Dir.createDirs().sumAllFoldersSmallerThan(MAX_SIZE)
+const directory = new Dir(input.split('\n'))
+
+export const part1 = () => directory.sumAllFoldersSmallerThan(MAX_SIZE)
 
 export const part2 = () =>
-  Dir.createDirs().findFolderToDeleteByTotalSizeTarget(TARGET_SIZE)
+  directory.findFolderToDeleteByTotalSizeTarget(TARGET_SIZE)
