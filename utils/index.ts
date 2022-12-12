@@ -13,5 +13,8 @@ export const chunkArray = <T>(arr: T[], size: number): T[][] =>
     return acc
   }, [])
 
-export const range = (length: number, startAt = 0) =>
-  [...Array(length).keys()].map(n => n + startAt)
+export const range = <T = number>(
+  length: number,
+  mapper: (n: number) => T = n => n as T,
+  startAt = 0
+): T[] => [...Array(length).keys()].map(n => mapper(n + startAt))

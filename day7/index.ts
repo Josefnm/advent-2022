@@ -12,11 +12,13 @@ class Dir {
       const command = commands.shift()
       if (!command || command === '$ cd ..') {
         break
+      }
+      const file = command.match(/\d+/)?.[0]
+      if (file != null) {
+        this.filesSize += +file
       } else if (command.includes('$ cd ')) {
         const subDir = new Dir(commands)
         this.dirs.push(subDir)
-      } else if (command.match(/\d+/)?.[0] != null) {
-        this.filesSize += +command.match(/\d+/)?.[0]!
       }
     }
   }
