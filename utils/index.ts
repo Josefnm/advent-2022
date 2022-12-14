@@ -23,3 +23,8 @@ export const getCharValue = (s: string) => {
   const char = s.charCodeAt(0)
   return char < 96 ? char - 38 : char - 96
 }
+
+export const toWindows = <T>(inputArray: T[], size: number): T[][] =>
+  Array.from({ length: inputArray.length - (size - 1) }, (_, index) =>
+    inputArray.slice(index, index + size)
+  )
