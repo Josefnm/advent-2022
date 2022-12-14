@@ -1,12 +1,7 @@
 import { getInput } from '../utils/getInput'
-import { chunkArray, intersect } from '../utils'
+import { chunkArray, getCharValue, intersect } from '../utils'
 
 const input = getInput(__dirname)
-
-const getCharValue = (s: string) => {
-  const char = s.charCodeAt(0)
-  return char < 96 ? char - 38 : char - 96
-}
 
 export const part1 = () =>
   input

@@ -18,3 +18,8 @@ export const range = <T = number>(
   mapper: (n: number) => T = n => n as T,
   startAt = 0
 ): T[] => [...Array(length).keys()].map(n => mapper(n + startAt))
+
+export const getCharValue = (s: string) => {
+  const char = s.charCodeAt(0)
+  return char < 96 ? char - 38 : char - 96
+}

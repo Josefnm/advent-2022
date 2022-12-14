@@ -19,12 +19,16 @@ const stepSneck = (
   [stepDx, stepDy]: Position
 ): Position => [headX + stepDx, headY + stepDy]
 
-const move = ([headX, headY]: Position, [tailX, tailY]: Position): Position => {
+const moveTail = (
+  [headX, headY]: Position,
+  [tailX, tailY]: Position
+): Position => {
   const dx = headX - tailX
   const dy = headY - tailY
   if (Math.abs(dx) > 1) {
     tailX += Math.sign(dx)
     if (Math.abs(dy) > 0) {
+      console.log(dy)
       tailY += Math.sign(dy)
     }
   } else if (Math.abs(dy) > 1) {
@@ -53,7 +57,7 @@ const moveSneck = (length: number): number => {
           directions[direction] as Position
         )
         for (let i = 0; i < acc.sneck.length - 1; i++) {
-          const tail = move(acc.sneck[i], acc.sneck[i + 1])
+          const tail = moveTail(acc.sneck[i], acc.sneck[i + 1])
           acc.sneck[i + 1] = tail
           if (i + 2 === acc.sneck.length) {
             acc.tail.push(tail)
