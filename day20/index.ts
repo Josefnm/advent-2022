@@ -71,4 +71,3 @@ export const part1 = () => {
 export const part2 = () => {
   return run(10, 811589153)
 }
-// { i: 1 }
