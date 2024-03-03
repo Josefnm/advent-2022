@@ -2,14 +2,12 @@ import getInput from '../utils/getInput'
 
 const input = getInput(__dirname)
 
-const MINS = 24
-
 type Choice = 'geode' | 'obsidian' | 'clay' | 'ore'
 
 const choices: Choice[] = ['ore', 'clay', 'obsidian', 'geode']
 
 type RobotsState = {
-  minutes: number
+  time: number
   ore: number
   clay: number
   obsidian: number
@@ -20,35 +18,10 @@ type RobotsState = {
     obsidian: number
     geode: number
   }
-  choices: Choice[]
-  data: any[]
 }
 
-const correct = [
-  [3, 0],
-  [5, 0],
-  [6, 1],
-  [7, 1],
-  [8, 1],
-  [9, 1],
-  [10, 1],
-  [11, 1],
-  [12, 2],
-  [13, 2],
-  [14, 2],
-  [15, 2],
-  [16, 1],
-  [17, 2],
-  [18, 3],
-  [19, 2],
-  [20, 3],
-  [21, 2],
-  [22, 3],
-  [24, 3],
-]
-
 const deepCopy = (data: RobotsState): RobotsState => ({
-  minutes: data.minutes,
+  time: data.time,
   ore: data.ore,
   clay: data.clay,
   obsidian: data.obsidian,
@@ -59,8 +32,6 @@ const deepCopy = (data: RobotsState): RobotsState => ({
     obsidian: data.robot.obsidian,
     geode: data.robot.geode,
   },
-  choices: [...data.choices],
-  data: [...data.data],
 })
 
 class Robot {
@@ -89,6 +60,8 @@ class Robot {
     this.geodeRobot = geodeRobot
   }
 }
+const sumOfIncreasingIntegers = (n: number, startIndex: number) =>
+  (n * (2 * startIndex + n - 1)) / 2
 
 class Blueprint {
   robots: Record<Choice, Robot>
@@ -96,7 +69,9 @@ class Blueprint {
   maxClayCost: number
   maxObsidianCost: number
   blueprintNo: number
-  constructor(data: string) {
+  maxTime: number
+  constructor(data: string, maxTime: number) {
+    this.maxTime = maxTime
     const [
       blueprintNo,
       oreCost,
@@ -154,28 +129,11 @@ class Blueprint {
     )
   }
 
-  onRound(_state: RobotsState, choice: Choice) {
-    //if (_state.minutes === 23) {
-    //  return undefined
-    //}
-    //if (_state.minutes >= 22 && choice !== 'geode') {
-    //  return undefined
-    //}
-    // if (_state.minutes >= 21 && choice === 'clay') {
-    //   return undefined
-    // }
-    const isCorrectPath =
-      _state.choices.toString() === [null, null, 'ore', null, 'ore'].toString()
-    if (isCorrectPath) {
-      console.log('isCorrectPath', 1)
-    }
+  onRound(_state: RobotsState, choice: Choice, maxGeode: number) {
     if (choice === 'ore' && this.maxOreCost <= _state.robot.ore) {
       return undefined
     }
     if (choice === 'clay' && this.maxClayCost <= _state.robot.clay) {
-      if (isCorrectPath) {
-        console.log('no clay', 1)
-      }
       return undefined
     }
     if (
@@ -184,24 +142,14 @@ class Blueprint {
     ) {
       return undefined
     }
-    if (isCorrectPath) {
-      console.log('isCorrectPath', 2)
-    }
-    /*
-    [
-  [ 3, 0 ],  [ 5, 0 ],  [ 6, 1 ],
-  [ 7, 1 ],  [ 8, 1 ],  [ 9, 1 ],
-  [ 10, 1 ], [ 11, 1 ], [ 12, 2 ],
-  [ 13, 2 ], [ 14, 2 ], [ 15, 2 ],
-  [ 16, 1 ], [ 17, 2 ], [ 18, 3 ],
-  [ 19, 2 ], [ 20, 3 ], [ 21, 2 ],
-  [ 22, 3 ], [ 24, 3 ]
-]
-     */
 
-    // if (_state.choices[2] === 'ore' && _state.choices.length === 3) {
-    //   console.log('correct path')
-    // }
+    const maxResult =
+      _state.geode +
+      sumOfIncreasingIntegers(this.maxTime - _state.time, _state.robot.geode)
+
+    if (maxResult < maxGeode) {
+      return undefined
+    }
 
     const robot = this.robots[choice]
 
@@ -214,52 +162,39 @@ class Blueprint {
 
     const state = deepCopy(_state)
 
-    if (turnsToBuy + state.minutes > MINS) {
-      const toAdd = state.robot.geode * (MINS - state.minutes)
-      state.geode += toAdd
-      state.data.push(toAdd)
-      state.minutes = MINS
+    if (
+      turnsToBuy + state.time >= this.maxTime ||
+      (turnsToBuy + state.time >= this.maxTime - 1 && choice !== 'geode') ||
+      (turnsToBuy + state.time >= this.maxTime - 2 && choice === 'clay')
+    ) {
+      state.geode += state.robot.geode * (this.maxTime - state.time)
+      state.time = this.maxTime
       return state
-    } else {
-      state.robot[choice]++
-      state.ore -= robot.oreCost
-      state.clay -= robot.clayCost
-      state.obsidian -= robot.obsidianCost
     }
 
-    state.minutes += turnsToBuy
+    state.robot[choice]++
+    state.ore -= robot.oreCost
+    state.clay -= robot.clayCost
+    state.obsidian -= robot.obsidianCost
+
+    state.time += turnsToBuy
     state.ore += _state.robot.ore * turnsToBuy
     state.clay += _state.robot.clay * turnsToBuy
     state.obsidian += _state.robot.obsidian * turnsToBuy
-    const addGeo = _state.robot.geode * turnsToBuy
+
     state.geode += _state.robot.geode * turnsToBuy
-    if (choice === 'geode') {
-      state.data.push(addGeo)
-    }
-    for (let i = 1; i < turnsToBuy; i++) {
-      // @ts-ignore
-      state.choices.push(null)
-    }
-    state.choices.push(choice)
-    if (
-      _state.choices[2] === 'ore' &&
-      _state.choices.length === 3 &&
-      choice === 'ore'
-    ) {
-      console.log(choice, turnsToBuy, state)
-    }
     return state
   }
 }
 
-export const part1 = () => {
-  const data = input.split('\n')
-  // console.time()
-  const blueprints = data.map((d, i) => {
-    // console.log(i)
-    const blueprint = new Blueprint(d)
+const run = (data: string[], time: number) => {
+  console.time('run')
+  const res = data.map((d, i) => {
+    console.log({ i })
+    console.time(i.toString())
+    const blueprint = new Blueprint(d, time)
     const initState: RobotsState = {
-      minutes: 1,
+      time: 1,
       ore: 1,
       clay: 0,
       obsidian: 0,
@@ -270,31 +205,18 @@ export const part1 = () => {
         obsidian: 0,
         geode: 0,
       },
-      // @ts-ignore
-      choices: [null],
-      data: [],
     }
     const queue = [initState]
-    let result: RobotsState | undefined = undefined
-    const results = []
-    // let counter = 0
+    let result: RobotsState = initState
     while (queue.length) {
       const state = queue.shift()!
-      // counter++
-      // if (counter % 100000 === 0) {
-      //   console.log(queue.length, state)
-      // }
-
       for (let choice of choices) {
-        const resState = blueprint.onRound(state, choice)
+        const resState = blueprint.onRound(state, choice, result.geode)
 
         if (resState) {
-          if (resState.minutes === MINS) {
-            if (result == null || resState.geode >= result.geode) {
+          if (resState.time === time) {
+            if (resState.geode >= result.geode) {
               result = resState
-              if (resState.geode === 9) {
-                results.push(resState)
-              }
             }
           } else {
             queue.push(resState)
@@ -302,19 +224,35 @@ export const part1 = () => {
         }
       }
     }
-    return {
-      blueprint,
-      ...result!, // [ 3, 7, 7, 4 ]
-      // results: results.find(r => r.robot.ore === 3),
-    }
+    console.timeEnd(i.toString())
+    return result.geode
   })
-
-  console.log(blueprints[0].choices)
-  // console.log(blueprints[1])
-  return blueprints.sort((a, b) => b.geode - a.geode)[0].geode
+  console.timeEnd('run')
+  return res
 }
-// @ts-ignore
-import x from './testing.js'
 
-// console.log('improt', x.pathRes)
-export const part2 = () => {}
+export const part1 = () => {
+  const time = 24
+  const data = input.split('\n')
+  const blueprints = run(data, time)
+  return {
+    res: blueprints.reduce((a, b, i) => a + b * (i + 1), 0),
+  }
+}
+
+/*
+time to run:
+{ i: 0 }
+0: 1:10.781 (m:ss.mmm)
+{ i: 1 }
+1: 4:13.786 (m:ss.mmm)
+{ i: 2 }
+2: 13.160s
+
+ */
+export const part2 = () => {
+  const time = 32
+  const data = input.split('\n')
+  const blueprints = run(data, time)
+  return { res: blueprints.reduce((a, b) => a * b, 1) }
+}
