@@ -252,7 +252,7 @@ time to run:
  */
 export const part2 = () => {
   const time = 32
-  const data = input.split('\n')
+  const data = input.split('\n').slice(0, 3)
   const blueprints = run(data, time)
   return { res: blueprints.reduce((a, b) => a * b, 1) }
 }
