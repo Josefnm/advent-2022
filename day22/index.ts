@@ -15,12 +15,6 @@ const Directions = {
   RIGHT: [1, 0],
 } satisfies Record<string, Direction>
 
-const DirSymbol = {
-  [Directions.UP.toString()]: '^',
-  [Directions.DOWN.toString()]: 'v',
-  [Directions.LEFT.toString()]: '<',
-  [Directions.RIGHT.toString()]: '>',
-}
 const DirValue = {
   [Directions.UP.toString()]: 3,
   [Directions.DOWN.toString()]: 1,
@@ -38,13 +32,16 @@ const transformDirection = (dir: Direction, turn: Turn): Direction => {
   if (turn === 'L') {
     return [y, -x]
   }
-  if (turn === 'O') {
-    return [-x, -y]
-  }
   throw Error('bad turn')
 }
 
 const printGrid = (grid: Grid, [x, y]: Point, dir: Direction) => {
+  const DirSymbol = {
+    [Directions.UP.toString()]: '^',
+    [Directions.DOWN.toString()]: 'v',
+    [Directions.LEFT.toString()]: '<',
+    [Directions.RIGHT.toString()]: '>',
+  }
   for (let i = 0; i < grid[0].length; i++) {
     let str = ''
     for (let j = 0; j < grid.length; j++) {
@@ -143,10 +140,10 @@ const move = (
   return [x, y]
 }
 
-const findInitX = (grid: Grid) => {
+const findInitPosition = (grid: Grid): Point => {
   for (let i = 0; i < grid.length; i++) {
     if (grid[i][0] !== ' ') {
-      return i
+      return [i, 0]
     }
   }
   throw Error('no start')
@@ -159,8 +156,8 @@ export const part1 = () => {
   data.pop()
   const grid = createGrid(data)
   let dir = Directions.RIGHT
-  const posX = findInitX(grid)
-  let pos: Point = [posX, 0]
+  const posX = findInitPosition(grid)
+  let pos: Point = findInitPosition(grid)
   for (const cmd of commands) {
     const dirNum = parseInt(cmd)
     if (isNaN(dirNum)) {
@@ -202,133 +199,36 @@ const findDimension = (grid: Grid) => {
   return minLen
 }
 
-const findCorner = (grid: Grid, [x, y]: Point) => {
-  if (grid[x + 1]?.[y] === ' ') {
-    return [x + 1, y]
-  }
-  if (grid[x - 1]?.[y] === ' ') {
-    return [x - 1, y]
-  }
-  if (grid[x][y + 1] === ' ') {
-    return [x, y + 1]
-  }
-  if (grid[x][y - 1] === ' ') {
-    return [x, y - 1]
-  }
+const Direction = {
+  RIGHT: 0,
+  DOWN: 1,
+  LEFT: 2,
+  UP: 3,
 }
 
-class Node {
-  point
-  pointType
-  UP: Node | undefined
-  DOWN: Node | undefined
-  LEFT: Node | undefined
-  RIGHT: Node | undefined
-  constructor(point: Point, type: GridPoint) {
-    this.point = point
-    this.pointType = type
-  }
-  getNode(dir: Direction): Node | undefined {
-    if (dir.toString() === Directions.UP.toString()) {
-      return this.UP
-    }
-    if (dir.toString() === Directions.DOWN.toString()) {
-      return this.DOWN
-    }
-    if (dir.toString() === Directions.LEFT.toString()) {
-      return this.LEFT
-    }
-    if (dir.toString() === Directions.RIGHT.toString()) {
-      return this.RIGHT
+const createSmallGrid = (grid: Grid, sideSize: number) => {
+  const newGrid: Grid = []
+  for (let i = 0; i < grid.length / sideSize; i++) {
+    newGrid[i] = []
+    for (let j = 0; j < grid[0].length / sideSize; j++) {
+      newGrid[i][j] = grid[i * sideSize][j * sideSize] === ' ' ? ' ' : '.'
     }
   }
-  setNode(dir: Direction, node: Node) {
-    if (dir.toString() === Directions.UP.toString()) {
-      this.UP = node
-    }
-    if (dir.toString() === Directions.DOWN.toString()) {
-      this.DOWN = node
-    }
-    if (dir.toString() === Directions.LEFT.toString()) {
-      this.LEFT = node
-    }
-    if (dir.toString() === Directions.RIGHT.toString()) {
-      this.RIGHT = node
-    }
-  }
-  toString() {
-    return {
-      point: this.point,
-      pointType: this.pointType,
-      left: this.LEFT?.point,
-      right: this.RIGHT?.point,
-      up: this.UP?.point,
-      down: this.DOWN?.point,
-    }
-  }
+  return newGrid
 }
+// 1 0 0
+// 0 1 0
+// 0 0 1
+// -1 0 0
+// 0 -1 0
+// 0 0 -1
 
-type NodeGrid = Node[][]
-
-const printNodeGrid = (grid: NodeGrid) => {
-  for (let i = 0; i < grid[0].length; i++) {
-    let str = ''
-    for (let j = 0; j < grid.length; j++) {
-      str += grid[j][i].pointType
-    }
-    console.log(str)
-  }
+type Node = {
+  x: -1 | 0 | 1
+  y: -1 | 0 | 1
+  z: -1 | 0 | 1
+  point: Point
 }
-
-const findStartNode = (grid: NodeGrid): Node => {
-  for (let i = 0; i < grid.length; i++) {
-    if (grid[i][0].pointType !== ' ') {
-      return grid[i][0]!
-    }
-  }
-  throw Error('no start')
-}
-
-const zipNodes = (start: Node,inputGrid:Grid) => {
-  let direction = Directions.RIGHT
-  let current = start
-  let count = 0
-  while (count < 100) {
-    console.log('start', current.point, direction)
-    printGrid(inputGrid, current.point, direction)
-    count++
-    const prev = current
-    const next = current.getNode(direction)
-    if (next?.pointType === ' ' || next === undefined) {
-      direction = transformDirection(direction, 'R')
-      current = current.getNode(direction)!
-      console.log('turn right')
-      continue
-    }
-    const leftDir = transformDirection(direction, 'L')
-    const left = current.getNode(leftDir)
-    const leftLeftDir = transformDirection(leftDir, 'L')
-    const leftLeft = left?.getNode(leftLeftDir)
-    if (left != null && left.pointType !== ' ' && leftLeft?.pointType === ' ') {
-      console.log('fold corner', leftDir, left.toString())
-      prev.setNode(leftDir, leftLeft)
-      leftLeft.setNode(leftLeftDir, prev)
-      direction = leftDir
-      current = left
-      continue
-    }
-    console.log('keep going straight')
-    current = next
-    // direction = direction
-  }
-  console.log('end', count)
-}
-
-/*
-x
-xo
-xxx
- */
 
 export const part2 = () => {
   const data = input.split('\n')
@@ -336,27 +236,102 @@ export const part2 = () => {
 
   data.pop()
   const grid = createGrid(data)
+  const pos = findInitPosition(grid)
+  const dim = findDimension(grid)
+  const smallGrid = createSmallGrid(grid, dim)
 
-  const nodeGrid = grid.map((x, xIdx) =>
-    x.map((y, yIdx) => new Node([xIdx, yIdx], y)),
-  )
+  const firstNode: Node = {
+    x: 0,
+    y: 0,
+    z: 1,
+    point: [pos[0] / dim, pos[1] / dim],
+  }
 
-  for (let i = 0; i < nodeGrid.length; i++) {
-    for (let j = 0; j < nodeGrid[0].length; j++) {
-      const node = nodeGrid[i][j]
-      if (node.pointType !== ' ') {
-        node.UP = nodeGrid[i]?.[j - 1]
-        node.DOWN = nodeGrid[i]?.[j + 1]
-        node.LEFT = nodeGrid[i - 1]?.[j]
-        node.RIGHT = nodeGrid[i + 1]?.[j]
+  const visited = new Set<string>()
+
+  /*
+  00X0
+  XXX0
+  00XX
+                    [0, 0, 1]
+                    [0, 1, 0]
+  [x, x, x][x, x, x][x, x, -1]
+                    [x, x, 0][x, x, x]
+  Front:  ( 0,  1,  0)
+  Back:   ( 0, -1,  0)
+  Right:  ( 1,  0,  0)
+  Left:   (-1,  0,  0)
+  Top:    ( 0,  0,  1)
+  Bottom: ( 0,  0, -1)
+   */
+
+  const traverseNodes = (node: Node, grid: Grid, count: number) => {
+    const [x, y] = node.point
+    if (visited.has(node.point.toString())) return
+    if (count > 3) return
+    console.log(node, count)
+    visited.add(node.point.toString())
+    const leftP: Point = [x - 1, y]
+    const rightP: Point = [x + 1, y]
+    const topP: Point = [x, y - 1]
+    const bottomP: Point = [x, y + 1]
+
+    const nodes = [rightP, bottomP, leftP, bottomP]
+
+    nodes.forEach((p, i) => {
+      const node: Node = {
+        x: 0,
+        y: 0,
+        z: 0,
+        point: p,
       }
+      console.log(i, count, node)
+      traverseNodes(node, grid, count + 1)
+    })
+
+    if (grid[leftP[0]]?.[leftP[1]] === '.') {
+      const node: Node = {
+        x: -1,
+        y: 0,
+        z: 0,
+        point: leftP,
+      }
+      traverseNodes(node, grid, count + 1)
+    }
+    if (grid[rightP[0]]?.[rightP[1]] === '.') {
+      const node: Node = {
+        x: 1,
+        y: 0,
+        z: 0,
+        point: rightP,
+      }
+      traverseNodes(node, grid, count + 1)
+    }
+    if (grid[topP[0]]?.[topP[1]] === '.') {
+      const node: Node = {
+        x: 0,
+        y: -1,
+        z: 0,
+        point: topP,
+      }
+      traverseNodes(node, grid, count + 1)
+    }
+    if (grid[bottomP[0]]?.[bottomP[1]] === '.') {
+      const node: Node = {
+        x: 0,
+        y: 1,
+        z: 0,
+        point: bottomP,
+      }
+      traverseNodes(node, grid, count + 1)
     }
   }
-  const startNode = findStartNode(nodeGrid)
-  zipNodes(startNode,grid)
-  printNodeGrid(nodeGrid)
-  console.log(nodeGrid[nodeGrid.length-1][nodeGrid[0].length-1].toString())
-  console.log(nodeGrid[nodeGrid.length-1][nodeGrid[0].length-1].toString())
-  const dim = findDimension(grid)
+  traverseNodes(firstNode, smallGrid, 0)
+
   return dim
 }
+/*
+00X0
+XXX0
+00XX
+ */
