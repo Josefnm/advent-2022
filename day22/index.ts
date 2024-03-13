@@ -8,19 +8,65 @@ type Grid = GridPoint[][]
 type Point = [number, number]
 type Direction = [number, number]
 
-const Directions = {
-  DOWN: [0, 1],
-  UP: [0, -1],
-  LEFT: [-1, 0],
-  RIGHT: [1, 0],
-} satisfies Record<string, Direction>
+const Directions: Point[] = [
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [0, -1],
+]
+
+function rotatePointInGrid([x, y]: Point, size: number, rotate: Rotation) {
+  let center = 1.5
+
+  // translate point to origin
+  let translatedX = (x % size) - center
+  let translatedY = (y % size) - center // Invert Y
+
+  // rotate 90 degrees clockwise k times
+  let rotatedX
+  let rotatedY
+  switch (rotate) {
+    case 0:
+      rotatedX = translatedX
+      rotatedY = translatedY
+      break
+    case 1:
+      rotatedX = -translatedY
+      rotatedY = translatedX
+      break
+    case 2:
+      rotatedX = -translatedX
+      rotatedY = -translatedY
+      break
+    case 3:
+      rotatedX = translatedY
+      rotatedY = -translatedX
+      break
+    default:
+      throw new Error('Rotation not defined. k should be in range 0 to 3')
+  }
+  // translate back
+  let resultX = rotatedX + center
+  let resultY = rotatedY + center // Revert Y inversion
+
+  return [resultX, resultY]
+}
+let originalPoint = [3, 1] as Point
+let rotatedPoint = rotatePointInGrid(originalPoint, 4, 1)
+console.log(rotatedPoint)
+/*
+xxox
+oxxx
+xxxo
+xoxx
+ */
 
 const DirValue = {
-  [Directions.UP.toString()]: 3,
-  [Directions.DOWN.toString()]: 1,
-  [Directions.LEFT.toString()]: 2,
-  [Directions.RIGHT.toString()]: 0,
-}
+  [Directions[0].toString()]: 0,
+  [Directions[1].toString()]: 1,
+  [Directions[2].toString()]: 2,
+  [Directions[3].toString()]: 3,
+} as Record<string, Rotation>
 
 type Turn = 'L' | 'R' | 'O'
 
@@ -37,11 +83,12 @@ const transformDirection = (dir: Direction, turn: Turn): Direction => {
 
 const printGrid = (grid: Grid, [x, y]: Point, dir: Direction) => {
   const DirSymbol = {
-    [Directions.UP.toString()]: '^',
-    [Directions.DOWN.toString()]: 'v',
-    [Directions.LEFT.toString()]: '<',
-    [Directions.RIGHT.toString()]: '>',
+    [Directions[0].toString()]: '>',
+    [Directions[1].toString()]: 'v',
+    [Directions[2].toString()]: '<',
+    [Directions[3].toString()]: '^',
   }
+  console.log('printing grid: ', x, y, dir.toString())
   for (let i = 0; i < grid[0].length; i++) {
     let str = ''
     for (let j = 0; j < grid.length; j++) {
@@ -155,9 +202,9 @@ export const part1 = () => {
 
   data.pop()
   const grid = createGrid(data)
-  let dir = Directions.RIGHT
-  const posX = findInitPosition(grid)
-  let pos: Point = findInitPosition(grid)
+  let dir = Directions[0]
+
+  let pos = findInitPosition(grid)
   for (const cmd of commands) {
     const dirNum = parseInt(cmd)
     if (isNaN(dirNum)) {
@@ -199,13 +246,6 @@ const findDimension = (grid: Grid) => {
   return minLen
 }
 
-const Direction = {
-  RIGHT: 0,
-  DOWN: 1,
-  LEFT: 2,
-  UP: 3,
-}
-
 const createSmallGrid = (grid: Grid, sideSize: number) => {
   const newGrid: Grid = []
   for (let i = 0; i < grid.length / sideSize; i++) {
@@ -222,116 +262,342 @@ const createSmallGrid = (grid: Grid, sideSize: number) => {
 // -1 0 0
 // 0 -1 0
 // 0 0 -1
+//type Point3D = [number, number, number]
 
-type Node = {
-  x: -1 | 0 | 1
-  y: -1 | 0 | 1
-  z: -1 | 0 | 1
-  point: Point
+//type Node = {
+//  x: -1 | 0 | 1
+//  y: -1 | 0 | 1
+//  z: -1 | 0 | 1
+//  point: Point
+//}
+
+// const create3DGrid = (size: number): any[][][] => {
+//   const grid: any[][][] = []
+//   for (let i = 0; i < size; i++) {
+//     grid[i] = []
+//     for (let j = 0; j < size; j++) {
+//       grid[i][j] = []
+//       for (let k = 0; k < size; k++) {
+//         grid[i][j][k] = '.'
+//       }
+//     }
+//   }
+//   return grid
+// }
+
+type Rotation = 0 | 1 | 2 | 3
+type Face = 1 | 2 | 3 | 4 | 5 | 6
+
+type Edge = [Face, Rotation]
+
+class FacingEdges {
+  edges: [Edge, Edge]
+  constructor(edges: [Edge, Edge]) {
+    this.edges = edges
+  }
+  toString() {
+    return `(${this.edges[0][0]}, ${this.edges[0][1]}) (${this.edges[1][0]}, ${this.edges[1][1]})`
+  }
 }
+const diceEdges: FacingEdges[] = [
+  new FacingEdges([
+    [1, 0],
+    [2, 0],
+  ]),
+  new FacingEdges([
+    [1, 1],
+    [3, 0],
+  ]),
+  new FacingEdges([
+    [1, 2],
+    [4, 0],
+  ]),
+  new FacingEdges([
+    [1, 3],
+    [5, 0],
+  ]),
+  new FacingEdges([
+    [2, 1],
+    [3, 3],
+  ]),
+  new FacingEdges([
+    [2, 2],
+    [6, 0],
+  ]),
+  new FacingEdges([
+    [2, 3],
+    [4, 1],
+  ]),
+  new FacingEdges([
+    [3, 1],
+    [5, 3],
+  ]),
+  new FacingEdges([
+    [3, 2],
+    [6, 1],
+  ]),
+  new FacingEdges([
+    [4, 2],
+    [6, 3],
+  ]),
+  new FacingEdges([
+    [4, 3],
+    [5, 1],
+  ]),
+  new FacingEdges([
+    [5, 2],
+    [6, 2],
+  ]),
+]
+
+class Side {
+  point: Point
+  rotation: Rotation
+  face: Face
+  constructor(point: Point, face: Face, rotation: Rotation) {
+    this.point = point
+    this.face = face
+    this.rotation = rotation
+  }
+  toString() {
+    return `(${this.point[0]}, ${this.point[1]}), ${this.face}, ${this.rotation}`
+  }
+}
+
+class Sides {
+  sides: Side[] = []
+  size: number
+  constructor(size: number) {
+    this.size = size
+  }
+  add(side: Side) {
+    this.sides.push(side)
+  }
+  has(side: Side) {
+    return !!this.sides.find(
+      s => s.point[0] === side.point[0] && s.point[1] === side.point[1],
+    )
+  }
+  findSide([x, y]: Point) {
+    return this.sides.find(
+      s =>
+        s.point[0] === Math.floor(x / this.size) &&
+        s.point[1] === Math.floor(y / this.size),
+    )
+  }
+  findSideByFace(face: Face) {
+    return this.sides.find(s => s.face === face)
+  }
+  toString() {
+    return this.sides.map(s => s.toString()).join('\n')
+  }
+}
+
+const findOppositeEdge = (edge: Edge): Edge => {
+  const [face, rotation] = edge
+  const oppositeEdge1 = diceEdges.find(
+    e => e.edges[0][0] === face && e.edges[0][1] === rotation,
+  )?.edges[1]
+  if (oppositeEdge1 !== undefined) return oppositeEdge1
+
+  const oppositeEdge2 = diceEdges.find(
+    e => e.edges[1][0] === face && e.edges[1][1] === rotation,
+  )?.edges[0]
+
+  if (oppositeEdge2 !== undefined) return oppositeEdge2
+  throw Error('bad edge')
+}
+
+/*
+0010
+4230
+0065
+(2, 0), 1, 0
+(2, 1), 3, 3
+(2, 2), 6, 2
+(3, 2), 1, 0
+(1, 1), 6, 2
+(0, 1), 5, 2
+
+ 0
+3 1
+ 2
+   new FacingEdges([
+    [1, 1],
+    [3, 0],
+  ]),
+   new FacingEdges([
+    [3, 2],
+    [6, 1],
+  ]),
+ */
+
+const getOppositeRotation = (rotation: Rotation): Rotation =>
+  ((rotation + 2) % 4) as Rotation
 
 export const part2 = () => {
   const data = input.split('\n')
   const commands = data.pop()!.match(/\d+|\D+/g)!
 
   data.pop()
-  const grid = createGrid(data)
-  const pos = findInitPosition(grid)
-  const dim = findDimension(grid)
-  const smallGrid = createSmallGrid(grid, dim)
+  const largeGrid = createGrid(data)
+  let pos = findInitPosition(largeGrid)
+  const size = findDimension(largeGrid)
+  const smallGrid = createSmallGrid(largeGrid, size)
+  const firstSide: Side = new Side([pos[0] / size, pos[1] / size], 1, 0)
 
-  const firstNode: Node = {
-    x: 0,
-    y: 0,
-    z: 1,
-    point: [pos[0] / dim, pos[1] / dim],
-  }
+  const sides = new Sides(size)
+  const directions: Rotation[] = [0, 1, 2, 3]
 
-  const visited = new Set<string>()
+  const traverseSides = (side: Side, grid: Grid) => {
+    const [x, y] = side.point
+    /*
+    0010
+    4230
+    0065
+     */
+    /*
+    (2, 0), 1, 0
+    (2, 1), 3, 3
+    (2, 2), 6, 2
+    (3, 2), 5, 0
+    (1, 1), 2, 3
+    (0, 1), 4, 3
+     */
+    directions.forEach(dir => {
+      const [dx, dy] = Directions[dir]
+      const nx = x + dx
+      const ny = y + dy
+      if (grid[nx]?.[ny] === '.') {
+        const dxDir = ((dir + -side.rotation + 4) % 4) as Rotation
+        const [face, oppRotation] = findOppositeEdge([side.face, dxDir])
+        const oppDir = getOppositeRotation(dir)
+        const newDir = ((oppDir - oppRotation + 4) % 4) as Rotation
+        const newSide = new Side([nx, ny], face, newDir)
+        if (sides.has(newSide)) return
+        sides.add(newSide)
+        const logger = (n: number) =>
+          console.log('here # ' + n, newSide, {
+            dir,
+            oppDir,
+            rotation: side.rotation,
+            oppRotation,
+            newDir,
+            dxDir,
+          })
+        if (nx === 0 && ny === 1) logger(4)
+        if (nx === 2 && ny === 1) logger(3)
+        if (nx === 1 && ny === 1) logger(2)
+        if (nx === 3 && ny === 2) logger(5)
+        if (nx === 2 && ny === 2) logger(6)
 
-  /*
-  00X0
-  XXX0
-  00XX
-                    [0, 0, 1]
-                    [0, 1, 0]
-  [x, x, x][x, x, x][x, x, -1]
-                    [x, x, 0][x, x, x]
-  Front:  ( 0,  1,  0)
-  Back:   ( 0, -1,  0)
-  Right:  ( 1,  0,  0)
-  Left:   (-1,  0,  0)
-  Top:    ( 0,  0,  1)
-  Bottom: ( 0,  0, -1)
-   */
-
-  const traverseNodes = (node: Node, grid: Grid, count: number) => {
-    const [x, y] = node.point
-    if (visited.has(node.point.toString())) return
-    if (count > 3) return
-    console.log(node, count)
-    visited.add(node.point.toString())
-    const leftP: Point = [x - 1, y]
-    const rightP: Point = [x + 1, y]
-    const topP: Point = [x, y - 1]
-    const bottomP: Point = [x, y + 1]
-
-    const nodes = [rightP, bottomP, leftP, bottomP]
-
-    nodes.forEach((p, i) => {
-      const node: Node = {
-        x: 0,
-        y: 0,
-        z: 0,
-        point: p,
+        traverseSides(newSide, grid)
       }
-      console.log(i, count, node)
-      traverseNodes(node, grid, count + 1)
     })
+  }
+  sides.add(firstSide)
+  traverseSides(firstSide, smallGrid)
 
-    if (grid[leftP[0]]?.[leftP[1]] === '.') {
-      const node: Node = {
-        x: -1,
-        y: 0,
-        z: 0,
-        point: leftP,
-      }
-      traverseNodes(node, grid, count + 1)
+  const wrapAround = (grid: Grid, [dx, dy]: Direction, [x, y]: Point) => {
+    const side = sides.findSide([x, y])!
+    const dirNum = DirValue[[dx, dy].toString()]
+    const rotation = ((dirNum - side.rotation + 4) % 4) as Rotation
+    const edge = findOppositeEdge([side.face, rotation])
+    /*
+      new FacingEdges([
+        [3, 1],
+        [5, 3],
+      ]),
+     */
+    console.log({ dirNum, rotation })
+    console.log('edge', edge)
+    console.log('side', side)
+
+    const nextSide = sides.findSideByFace(edge[0])!
+    console.log('nextSide', nextSide.toString())
+    const prevRotation = side.rotation
+    const prevDirection = DirValue[[dx, dy].toString()]
+    const nextRotation = nextSide.rotation
+    const nextDirection = edge[1]
+     console.log({ prevRotation, prevDirection, nextRotation, nextDirection })
+    const rotateBy = ((nextDirection + nextRotation) % 4) as Rotation
+    const [rx, ry] = rotatePointInGrid([x, y], size, rotateBy)
+    const [nx, ny] = Directions[rotateBy]
+
+    const newPoint = [
+      nextSide.point[0] * size + ((4 + nx + rx) % size),
+      nextSide.point[1] * size + ((4 + ny + ry) % size),
+    ]
+    const res={
+      direction: Directions[rotateBy],
+      point: newPoint,
     }
-    if (grid[rightP[0]]?.[rightP[1]] === '.') {
-      const node: Node = {
-        x: 1,
-        y: 0,
-        z: 0,
-        point: rightP,
+    console.log({rotateBy})
+     console.log('res', res)
+    return res
+  }
+
+  const move = (
+    grid: Grid,
+    [x, y]: Point,
+    [dx, dy]: Direction,
+    cmd: number,
+  ): {
+    point: Point
+    direction: Direction
+  } => {
+    for (let i = 0; i < cmd; i++) {
+      const nx = x + dx
+      const ny = y + dy
+      if (grid[nx]?.[ny] === '#') {
+        return {
+          point: [x, y],
+          direction: [dx, dy],
+        }
       }
-      traverseNodes(node, grid, count + 1)
+      if (grid[nx]?.[ny] === '.') {
+        x = nx
+        y = ny
+        continue
+      }
+
+      const {
+        point: [wx, wy],
+        direction,
+      } = wrapAround(grid, [dx, dy], [x, y])
+
+      if (grid[wx]?.[wy] === '#') {
+        return {
+          point: [x, y],
+          direction,
+        }
+      } else {
+        return {
+          point: [wx, wy],
+          direction,
+        }
+      }
     }
-    if (grid[topP[0]]?.[topP[1]] === '.') {
-      const node: Node = {
-        x: 0,
-        y: -1,
-        z: 0,
-        point: topP,
-      }
-      traverseNodes(node, grid, count + 1)
-    }
-    if (grid[bottomP[0]]?.[bottomP[1]] === '.') {
-      const node: Node = {
-        x: 0,
-        y: 1,
-        z: 0,
-        point: bottomP,
-      }
-      traverseNodes(node, grid, count + 1)
+    return {
+      point: [x, y],
+      direction: [dx, dy],
     }
   }
-  traverseNodes(firstNode, smallGrid, 0)
-
-  return dim
+  console.log(sides.toString())
+  let dir = Directions[0]
+  for (const cmd of commands) {
+    const dirNum = parseInt(cmd)
+    if (isNaN(dirNum)) {
+      dir = transformDirection(dir, cmd as Turn)
+    } else {
+      const newPos = move(largeGrid, pos, dir, dirNum)
+      printGrid(largeGrid, newPos.point, newPos.direction)
+      dir = newPos.direction
+      pos = newPos.point
+    }
+  }
+  const row = pos[1] + 1
+  const col = pos[0] + 1
+  const dirValue = DirValue[dir.toString()]
+  return row * 1000 + col * 4 + dirValue
 }
-/*
-00X0
-XXX0
-00XX
- */
